@@ -1,164 +1,198 @@
 # Robust Multi-Source COVID-19 Detection in CT Images
+
 <p align="center">
-the paper is accepted by 3rd Workshop on New Trends in AI-Generated Media and Security (AIMS) @ CVPR 2026
+  Adapted for RICORD Single-Source Training
 </p>
 <p align="center">
-  <a href="#"><img src="https://img.shields.io/badge/Paper-PDF-red" alt="Paper"></a>
-  <a href="#pretrained-weights"><img src="https://img.shields.io/badge/Weights-Checkpoint-blue" alt="Weights"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green" alt="License"></a>
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10-blue" alt="Python"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10+-blue" alt="Python"></a>
   <a href="https://pytorch.org/"><img src="https://img.shields.io/badge/PyTorch-2.1-orange" alt="PyTorch"></a>
 </p>
 
 <p align="center">
-  <a href="#">[Paper]</a> •
   <a href="#getting-started">[Getting Started]</a> •
-  <a href="#pretrained-weights">[Weights]</a> •
-  <a href="#quick-start-colab">[Colab]</a> •
-  <a href="#citation">[Citation]</a>
+  <a href="#results">[Results]</a> •
+  <a href="#method">[Method]</a> •
+  <a href="#acknowledgements">[Acknowledgements]</a>
 </p>
 
-> **Asmita Yuki Pritha**\*, **Jason Xu**\*, **Daniel Ding**\*, **Justin Li**\*, **Aryana Hou**\*, Xin Wang, Shu Hu†
->
-> *Equal contribution, †Corresponding author
+> Based on the work by **Asmita Yuki Pritha**, **Jason Xu**, **Daniel Ding**, **Justin Li**, **Aryana Hou**, Xin Wang, Shu Hu†
 >
 > M2 Lab, Purdue University
+>
+> *Paper accepted at 3rd Workshop on New Trends in AI-Generated Media and Security (AIMS) @ CVPR 2026*
 
 ---
 
 ## Overview
 
-We propose a multi-task learning framework that pairs binary COVID-19 diagnosis with auxiliary source (hospital) identification over a shared **EfficientNet-B7** backbone. A **logit-adjusted cross-entropy loss** on the source head corrects for uneven hospital contributions, pushing the shared encoder toward source-invariant representations.
+This project adapts the multi-task COVID-19 CT detection framework from [Purdue-M2/multisource-covid-ct](https://github.com/Purdue-M2/multisource-covid-ct) for single-source training on the **RICORD dataset** (COVID-19-positive and COVID-19-negative CT scans from TCIA).
 
-<p align="center">
-  <img src="fig/figurepipeline1.png" width="90%"/>
-</p>
+### Changes from Original
 
-## Key Results
+| Aspect | Original (PHAROS) | This Fork (RICORD) |
+|--------|-------------------|---------------------|
+| Dataset | PHAROS Multi-Source (4 hospitals) | RICORD-1A + RICORD-1B (single source) |
+| Sources | 4 sources, logit-adjusted CE | 1 source, BCE only (γ=0.0) |
+| Data format | Pre-processed PNG | DICOM → PNG conversion |
+| Preprocessing | Fixed folder structure | CSV-based train/val splits |
+| GPU | NVIDIA A100 | Consumer GPU (4GB VRAM) |
 
-| Configuration | γ | F1 | AUC | Accuracy | Competition Score |
-|:---|:---:|:---:|:---:|:---:|:---:|
-| Baseline (BCE only) | — | 0.8915 | 0.9627 | 0.9091 | 0.8008 |
-| Multi-task + CE | 1.0 | 0.8930 | 0.9715 | 0.9058 | 0.7942 |
-| Multi-task + LA | 0.1 | 0.8861 | 0.9656 | 0.9123 | 0.7988 |
-| Multi-task + LA | 0.2 | 0.8794 | 0.9561 | 0.8994 | 0.7850 |
-| **Multi-task + LA (ours)** | **0.5** | **0.9098** | **0.9647** | **0.9253** | **0.8194** |
-| Multi-task + LA | 1.0 | 0.8800 | 0.9462 | 0.8929 | 0.7910 |
+---
 
-<details>
-<summary><b>Per-source breakdown (γ = 0.5)</b></summary>
+## Results
 
-| Source | Scans | F1 COVID | F1 Non-COVID | Avg |
-|:---|:---:|:---:|:---:|:---:|
-| Source 0 | 90 | 0.9032 | 0.8966 | 0.8999 |
-| Source 1 | 90 | 0.8571 | 0.8750 | 0.8661 |
-| Source 2 | 83 | 0.9459 | 0.9565 | 0.9512 |
-| Source 3 | 45 | 0.0000 | 0.8889 | 0.4444 |
+### Single-Source RICORD Training
 
-*Note: Source 3 validation set contains 0 COVID samples, making F1_COVID undefined.*
+| Metric | Value |
+|--------|-------|
+| **F1 Score** | 0.7879 |
+| **AUC-ROC** | 0.8056 |
+| **Competition Score** | **0.7939** |
+| **Accuracy** | 79.4% |
+| **Sensitivity** | 72.2% |
+| **Specificity** | 87.5% |
 
-</details>
+```
+Confusion Matrix
+              Pred    Non-COVID    COVID
+Actual
+Non-COVID           14 (TN)       2 (FP)
+COVID                5 (FN)      13 (TP)
+```
+
+### Per-Class Performance
+
+| Class | Precision | Recall | F1-Score | Support |
+|-------|-----------|--------|----------|---------|
+| Non-COVID | 0.74 | 0.88 | 0.80 | 16 |
+| COVID | 0.87 | 0.72 | 0.79 | 18 |
+
+---
 
 ## Getting Started
 
 ### 1. Environment
 
 ```bash
-git clone https://github.com/Purdue-M2/multisource-covid-ct.git
+git clone https://github.com/BaoNgo355/multisource-covid-ct.git
 cd multisource-covid-ct
-pip install -r requirements.txt
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# or
+.\venv\Scripts\activate   # Windows
+
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+pip install timm albumentations scipy opencv-python pydicom pandas tqdm
 ```
 
-Tested with Python 3.10, PyTorch 2.1, CUDA 12.1 on a single NVIDIA A100.
+Tested with Python 3.10+, PyTorch 2.1+, CUDA 12.1 on a single NVIDIA GPU (4GB VRAM).
 
-### 2. Data Preparation
+### 2. Data Download
 
-Download the [PHAROS Multi-Source COVID-19 dataset](https://pharos.aimlab.app/) and place files following the structure in [`data/README.md`](data/README.md).
+Download DICOM data from [TCIA](https://tcia.nci.nih.gov/) using the **TCIA Data Retriever** tool:
 
-### 3. Preprocessing
+- **RICORD-1A** (COVID-positive): 110 series → 89 valid scans
+- **RICORD-1B** (COVID-negative): 117 series → 79 valid scans
+
+Place manifest files and DICOM data in:
+```
+data/dicom/
+├── ricord_1a/
+│   └── manifest-1608266677008/
+│       ├── metadata.csv
+│       └── MIDRC-RICORD-1A/...
+└── ricord_1b/
+    └── manifest-1612365584013/
+        ├── metadata.csv
+        └── MIDRC-RICORD-1B/...
+```
+
+See [`data/README.md`](data/README.md) for detailed instructions.
+
+### 3. DICOM → PNG Conversion
+
+```bash
+python scripts/convert_dicom_to_png.py
+```
+
+This script:
+- Reads TCIA metadata to select best axial CT series per subject
+- Applies lung windowing (W=1500, L=-600)
+- Converts DICOM to PNG slices
+
+Output: `data/png/covid/` and `data/png/non-covid/`
+
+### 4. Create Train/Val Splits
+
+```bash
+python scripts/create_csv_splits.py
+```
+
+Generates 80/20 stratified splits as CSV files:
+```
+data/splits/
+├── train_covid.csv
+├── train_non_covid.csv
+├── validation_covid.csv
+└── validation_non_covid.csv
+```
+
+### 5. Preprocessing
 
 ```bash
 python preprocess.py \
-    --raw_dir data/raw \
-    --output_dir data/preprocessed
+    --raw_dir data/png \
+    --output_dir data/preprocessed \
+    --csv_dir data/splits
 ```
 
-This applies SSFL lung extraction and KDS sampling (8 slices/scan, 256×256).
+Applies SSFL lung extraction and KDS sampling (8 slices/scan, 256×256).
 
-### 4. Training
+### 6. Training
 
 ```bash
 python train.py \
     --data_dir data/preprocessed \
-    --csv_dir data/ \
-    --gamma 0.5 \
-    --epochs 8 \
-    --batch_size 10
+    --csv_dir data/splits \
+    --gamma 0.0 \
+    --epochs 20 \
+    --batch_size 2
 ```
 
-To sweep γ:
+- `gamma=0.0`: Single-source mode (no source identification loss)
+- `batch_size=2`: Adjust based on GPU VRAM (2 for 4GB, 10 for 16GB+)
+- Best model saved to `checkpoints/best_gamma0.0.pth`
 
-```bash
-bash scripts/sweep_gamma.sh data/preprocessed data/
-```
-
-### 5. Evaluation
+### 7. Evaluation
 
 ```bash
 python evaluate.py \
-    --checkpoint checkpoints/best_gamma0.5.pth \
+    --checkpoint checkpoints/best_gamma0.0.pth \
     --data_dir data/preprocessed \
-    --csv_dir data/ \
-    --output results.txt
+    --csv_dir data/splits
 ```
 
-### 6. Inference on New Data
+Outputs accuracy, F1, AUC-ROC, sensitivity, specificity, and confusion matrix.
 
-```bash
-python inference.py \
-    --checkpoint checkpoints/best_gamma0.5.pth \
-    --data_dir data/preprocessed/test \
-    --output submission.csv
-```
-
-### 7. Reproduce Figures
-
-```bash
-python scripts/visualize_results.py --output_dir fig/
-```
-
-This generates `gamma_sensitivity.pdf`, `per_source_f1.pdf`, and `gamma_comparison.pdf`.
-
-## Pretrained Weights
-
-| Model | γ | Score | Download |
-|:---|:---:|:---:|:---|
-| EfficientNet-B7 + LA | 0.5 | 0.8194 | [GitHub Release](https://github.com/Purdue-M2/multisource-covid-ct/releases) |
-
-Download the checkpoint and place it in `checkpoints/`:
-
-```bash
-mkdir -p checkpoints
-# Download from GitHub Releases and place here
-mv best_gamma0.5.pth checkpoints/
-```
-
-### Quick Start (Colab)
-
-For a one-click end-to-end run, open **`MultiSource_COVID_CT.ipynb`** in Google Colab with an A100 GPU runtime. The notebook handles data extraction, preprocessing, training, evaluation, and submission generation.
+---
 
 ## Project Structure
 
 ```
-├── configs/
+├── configurations/
 │   └── default.yaml              # Hyperparameters and augmentation config
 ├── data/
-│   └── README.md                 # Dataset download and setup instructions
-├── fig/
-│   └── figurepipeline1.png       # Pipeline overview figure
+│   ├── README.md                 # Dataset download instructions
+│   ├── dicom/                    # Raw DICOM data (not tracked)
+│   ├── png/                      # Converted PNG images (not tracked)
+│   ├── splits/                   # Train/val CSV splits
+│   └── preprocessed/             # Preprocessed scans (not tracked)
 ├── scripts/
-│   ├── sweep_gamma.sh            # γ sweep script
-│   └── visualize_results.py      # Generate paper figures
+│   ├── convert_dicom_to_png.py   # DICOM → PNG with lung windowing
+│   ├── create_csv_splits.py      # Create train/val CSV splits
+│   ├── sweep_gamma.sh            # γ sweep script (original)
+│   └── visualize_results.py      # Generate paper figures (original)
 ├── src/
 │   ├── __init__.py
 │   ├── model.py                  # Multi-task EfficientNet-B7
@@ -166,39 +200,32 @@ For a one-click end-to-end run, open **`MultiSource_COVID_CT.ipynb`** in Google 
 │   ├── dataset.py                # CT dataset class and augmentations
 │   ├── preprocessing.py          # Lung extraction + KDS sampling
 │   └── engine.py                 # Training and evaluation loops
-├── MultiSource_COVID_CT.ipynb    # End-to-end Colab notebook
+├── checkpoints/                  # Model weights (not tracked)
 ├── train.py                      # Main training script
 ├── preprocess.py                 # Data preprocessing script
 ├── evaluate.py                   # Standalone evaluation script
-├── inference.py                  # Inference on new data
 ├── requirements.txt
 ├── LICENSE
 └── README.md
 ```
 
+---
+
 ## Method
 
 1. **Preprocessing** — SSFL lung extraction isolates the lung region via spatial filtering, binarization, and morphological closing. KDS fits a Gaussian KDE over slice-level lung areas and selects 8 representative slices per scan.
 
-2. **Architecture** — EfficientNet-B7 processes each slice independently, producing 8 feature vectors of dimension 2560. Element-wise mean pooling aggregates them into a single scan-level representation, which feeds two heads: a binary COVID-19 classifier and a 4-class source identifier.
+2. **Architecture** — EfficientNet-B7 processes each slice independently, producing 8 feature vectors of dimension 2560. Element-wise mean pooling aggregates them into a single scan-level representation, which feeds two heads: a binary COVID-19 classifier and a source identifier.
 
-3. **Loss** — The COVID head uses BCE. The source head uses logit-adjusted cross-entropy, which adds log-frequency offsets before softmax to correct for uneven hospital contributions. The combined loss is ℓ = ℓ\_CE + γ · ℓ\_LA.
+3. **Loss** — The COVID head uses BCE. In single-source mode (γ=0.0), only the COVID loss is used.
 
-## Citation
-
-```bibtex
-@inproceedings{asmita2026multisource,
-  title={Robust Multi-Source COVID-19 Detection in CT Images},
-  author={Pritha, Asmita Yuki and Xu, Jason and Ding, Daniel and Li, Justin and Hou, Aryana and Wang, Xin and Hu, Shu},
-  booktitle={Proceedings of the {IEEE/CVF} Conference on Computer
-             Vision and Pattern Recognition ({CVPR}) Workshops},
-  year={2026}
-}
-```
+---
 
 ## Acknowledgements
 
-This work is supported by the U.S. National Science Foundation (NSF) under grant IIS-2434967, and the National Artificial Intelligence Research Resource (NAIRR) Pilot and TACC Lonestar6.
+This work builds upon the multi-source COVID-19 detection framework developed by the M2 Lab at Purdue University, supported by the U.S. National Science Foundation (NSF) under grant IIS-2434967, and the National Artificial Intelligence Research Resource (NAIRR) Pilot and TACC Lonestar6.
+
+Dataset: [RICORD](https://ricord.org/) from [TCIA](https://tcia.nci.nih.gov/).
 
 ## License
 

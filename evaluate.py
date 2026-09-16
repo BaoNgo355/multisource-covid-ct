@@ -34,7 +34,7 @@ from src import (
 )
 
 
-SOURCE_COUNTS = [328, 330, 330, 234]
+SOURCE_COUNTS = [134]
 SOURCE_TOTAL = sum(SOURCE_COUNTS)
 SOURCE_FREQS = [c / SOURCE_TOTAL for c in SOURCE_COUNTS]
 
@@ -99,7 +99,7 @@ def main(args):
     )
 
     # Load model
-    model = MultiTaskEfficientNet(pretrained=False, num_sources=4).to(device)
+    model = MultiTaskEfficientNet(pretrained=False, num_sources=1).to(device)
     state_dict = torch.load(args.checkpoint, map_location=device)
     model.load_state_dict(state_dict)
     model.eval()

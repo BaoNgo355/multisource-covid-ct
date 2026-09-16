@@ -3,7 +3,7 @@
 
 # Model
 backbone: tf_efficientnet_b7
-num_sources: 4
+num_sources: 1
 dropout: 0.3
 
 # Preprocessing
@@ -12,15 +12,15 @@ image_size: 256
 min_slices_per_scan: 5
 
 # Training
-gamma: 0.5          # source loss weight (sweep: 0.1, 0.2, 0.5, 1.0)
-epochs: 8
+gamma: 0.0          # source loss weight (0.0 for single source)
+epochs: 20
 batch_size: 10
 learning_rate: 1.0e-4
 weight_decay: 5.0e-4
 precision: amp       # mixed-precision training
 
-# Source distribution (training set)
-source_counts: [328, 330, 330, 234]
+# Source distribution (training set - single source RICORD)
+source_counts: [134]
 
 # Augmentation
 augmentation:

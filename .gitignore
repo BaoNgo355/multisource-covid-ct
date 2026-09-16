@@ -9,6 +9,8 @@ build/
 *.pt
 checkpoints/
 data/raw/
+data/dicom/
+data/png/
 data/preprocessed/
 *.csv
 wandb/
@@ -19,3 +21,5 @@ results/
 submission.csv
 *.pdf
 !fig/*.pdf
+venv/
+train_log.txt

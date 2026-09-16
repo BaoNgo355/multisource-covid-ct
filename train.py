@@ -27,8 +27,8 @@ from src import (
 
 
 # ── Per-source scan counts from the training set ──────────────────────
-# Source 0: 328, Source 1: 330, Source 2: 330, Source 3: 234
-SOURCE_COUNTS = [328, 330, 330, 234]
+# Source 0: 134 (RICORD single source)
+SOURCE_COUNTS = [134]
 SOURCE_TOTAL = sum(SOURCE_COUNTS)
 SOURCE_FREQS = [c / SOURCE_TOTAL for c in SOURCE_COUNTS]
 
@@ -109,7 +109,7 @@ def main(args):
     )
 
     # ── Model + optimiser ─────────────────────────────────────────────
-    model = MultiTaskEfficientNet(pretrained=True, num_sources=4).to(device)
+    model = MultiTaskEfficientNet(pretrained=True, num_sources=1).to(device)
     optimizer = torch.optim.Adam(
         model.parameters(), lr=args.lr, weight_decay=args.weight_decay
     )
