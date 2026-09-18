@@ -46,7 +46,7 @@ Dự án này thích ứng khung phát hiện COVID-19 CT đa nhiệm từ [Purd
 
 ### 2.1 Tổng Quan Tập Dữ Liệu RICORD
 
-**RICORD** (Research Imaging Coordinate Resource for COVID-19) là tập dữ liệu công khai từ [TCIA](https://tcia.nci.nih.gov/)用于 phân loại COVID-19 CT.
+**RICORD** (Research Imaging Coordinate Resource for COVID-19) là tập dữ liệu công khai từ [TCIA](https://tcia.nci.nih.gov/) phân loại COVID-19 CT.
 
 | Bộ Sưu Tập | Mô Tả | Đối Tượng | DICOM Series | Tổng Ảnh |
 |-------------|-------|-----------|--------------|----------|
