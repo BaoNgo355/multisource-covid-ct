@@ -12,6 +12,11 @@ data/raw/
 data/dicom/
 data/png/
 data/preprocessed/
+# dataset SARS-CoV-2 CT-scan & du lieu tien xu ly
+data/COVID/
+data/non-COVID/
+data/raw_*/
+data/preprocessed_*/
 *.csv
 wandb/
 .vscode/
