@@ -1,171 +1,108 @@
 # Data
 
-This project uses the **RICORD dataset** (Research Imaging Coordinate Resource for COVID-19) from [TCIA](https://tcia.nci.nih.gov/).
+This project uses the **SARS-CoV-2 CT-scan dataset** from [Kaggle](https://www.kaggle.com/datasets/plameneduardo/sarscov2-ctscan-dataset).
 
 ## Dataset Overview
 
-| Collection | Description | Subjects | DICOM Series | Total Images |
-|------------|-------------|----------|--------------|--------------|
-| RICORD-1A | COVID-19 positive CT scans | 110 | 229 | 31,856 |
-| RICORD-1B | COVID-19 negative CT scans | 117 | 120 | 21,220 |
+| Property | Value |
+|----------|-------|
+| **Name** | SARS-CoV-2 CT-scan dataset |
+| **Authors** | Soares, Angelov, Biaso, Froes, Abe (2020) |
+| **Source** | Hospitals in São Paulo, Brazil |
+| **Images** | 2,482 PNG (1,252 COVID + 1,230 Non-COVID) |
+| **Size** | ~242 MB |
+| **License** | CC BY-NC-SA 4.0 |
+| **Paper** | [medRxiv 10.1101/2020.04.24.20078584](https://doi.org/10.1101/2020.04.24.20078584) |
+| **Baseline (authors)** | xDNN — F1 = 97.31% |
+
+Each image is a single 2D CT slice of the chest (grayscale PNG, sizes vary from ~146 to ~490 px).
+There are **no patient IDs, no scan grouping and no source/hospital labels** — each image is an independent sample.
 
 ## Download
 
-### Option 1: TCIA Data Retriever (Recommended)
+### Option A: Kaggle CLI (Recommended)
 
-1. Download [TCIA Data Retriever](https://wiki.cancerimagingarchive.net/display/Public/TCIA+Data+Retriever) from TCIA website
-2. Install and open the application
-3. Search for collections:
-   - Type `MIDRC-RICORD-1A` in search box → Select collection → Click "Download"
-   - Type `MIDRC-RICORD-1B` in search box → Select collection → Click "Download"
-4. Choose download location and wait for completion
-5. Place the downloaded folders following the structure below
+```bash
+pip install kaggle
 
-### Option 2: Manual Download
+# 1. Create API token: https://www.kaggle.com/settings -> API -> Create New Token
+# 2. Place kaggle.json in ~/.kaggle/ (Linux/macOS) or C:\Users\<user>\.kaggle\ (Windows)
 
-1. Visit [TCIA RICORD-1A](https://tcia.nci.nih.gov/collections/MIDRC-RICORD-1A)
-2. Click "Download" → Select "Download Entire Collection"
-3. Repeat for [RICORD-1B](https://tcia.nci.nih.gov/collections/MIDRC-RICORD-1B)
+kaggle datasets download -d plameneduardo/sarscov2-ctscan-dataset -p data --unzip
+```
 
-### Expected Data Size
+**Time**: ~5 minutes (242 MB).
 
-- RICORD-1A: ~3GB (229 series, 31,856 DICOM images)
-- RICORD-1B: ~2GB (120 series, 21,220 DICOM images)
-- Total: ~5GB
+### Option B: Manual Download
 
-## Folder Structure
+1. Open the [Kaggle dataset page](https://www.kaggle.com/datasets/plameneduardo/sarscov2-ctscan-dataset)
+2. Click **Download** (uncompressed .zip)
+3. Extract so that the two class folders sit somewhere under `data/`:
 
 ```
 data/
-├── dicom/                              # Raw DICOM data (after download)
-│   ├── ricord_1a/
-│   │   └── manifest-1608266677008/
-│   │       ├── metadata.csv            # Series metadata
-│   │       └── MIDRC-RICORD-1A/
-│   │           └── <subject_id>/       # e.g., MIDRC-RICORD-1A-419639-000082
-│   │               └── <study>/
-│   │                   └── <series>/
-│   │                       └── *.dcm   # DICOM files
-│   └── ricord_1b/
-│       └── manifest-1612365584013/
-│           ├── metadata.csv
-│           └── MIDRC-RICORD-1B/
-│               └── <subject_id>/
-│
-├── png/                                # After DICOM→PNG conversion
-│   ├── covid/
-│   │   └── <subject_id>/
-│   │       ├── slice_0000.png
-│   │       ├── slice_0001.png
-│   │       └── ... (varies per scan)
-│   └── non-covid/
-│       └── <subject_id>/
-│
-├── splits/                             # After CSV split creation
-│   ├── train_covid.csv                 # 71 scans
-│   ├── train_non_covid.csv             # 63 scans
-│   ├── validation_covid.csv            # 18 scans
-│   └── validation_non_covid.csv        # 16 scans
-│
-└── preprocessed/                       # After preprocessing
+├── COVID/            # 1,252 CT images (COVID positive)
+└── non-COVID/        # 1,230 CT images (COVID negative)
+```
+
+> The notebook **auto-detects** the two class folders at any nesting depth — common Kaggle
+> folder names (`CT_COVID` / `CT_NonCOVID`) also work. It ignores `preprocessed_*`, `raw_*`
+> and `processed_lung_ct_scan` folders so re-runs are safe.
+
+## Expected Structure After Running the Notebook
+
+```
+data/
+├── README.md
+├── COVID/                        # raw (untracked by git)
+├── non-COVID/                    # raw (untracked by git)
+└── preprocessed_sarscov2/        # generated (untracked by git)
     ├── train/
-    │   └── <scan_id>/
-    │       ├── slice_0000.png          # 8 KDS-selected slices
-    │       ├── slice_0001.png
-    │       ├── ...
-    │       └── slice_0007.png
+    │   ├── covid/                # 1,001 images (SSFL lung-extracted, 256×256)
+    │   └── non-covid/            #   983 images
     └── val/
-        └── <scan_id>/
+        ├── covid/                #   251 images
+        └── non-covid/            #   246 images
 ```
 
-## Pipeline
+## Split (Stratified 80/20, seed = 42)
 
-### Step 1: Convert DICOM to PNG
+| Split | COVID | Non-COVID | Total |
+|-------|-------|-----------|-------|
+| Train | 1,001 | 983 | **1,984** |
+| Validation | 251 | 246 | **497** |
+| **Total** | 1,252 | 1,229 | **2,481** |
 
-```bash
-python scripts/convert_dicom_to_png.py
-```
+> Note: 2,481 images on disk vs. 2,482 published — one image from the original release is
+> missing locally; the imbalance (50.4% / 49.6%) is unaffected.
 
-**What it does:**
-- Reads `metadata.csv` to select best axial CT series per subject
-- Excludes: SCOUT, COR 3X3, SAG 3X3, bone algorithm series
-- Applies lung windowing (W=1500, L=-600)
-- Converts DICOM to PNG slices
+## Preprocessing Pipeline
 
-**Expected output:** 183 scans, 24,056 PNG slices
+1. **Stratified split first** (80/20, seed 42) — split before preprocessing so no validation
+   image influences any transform fitted on training data.
+2. **SSFL lung extraction** (kept from the original code): spatial filtering → Otsu
+   binarization → contour detection → morphological closing → border removal → resize 256×256.
+3. **KDS slice sampling removed** — the original pipeline grouped 8 slices per scan; here each
+   file is an independent 2D image (1 image = 1 sample).
+4. Toggle `USE_LUNG_EXTRACT = False` in the notebook to train on raw images (ablation).
 
-### Step 2: Create Train/Val Splits
+## Data Quality Checks (performed on this copy)
 
-```bash
-python scripts/create_csv_splits.py
-```
+| Check | Result |
+|-------|--------|
+| Corrupted images (sample of 80) | 0 |
+| Exact duplicates (same MD5) | 2 images (0.08%) |
+| Duplicates crossing classes | 0 |
+| Duplicate pair crossing train/val | 1 pair (minor leakage, see REPORT.md §9) |
 
-**What it does:**
-- Collects scans with ≥5 slices from `data/png/`
-- Creates 80/20 stratified train/val split
-- Generates CSV files
+## Legacy / Previous Experiments
 
-**Expected output:** 134 train, 34 val scans
+Earlier experiments of this repo used other datasets — kept for reference in git history:
 
-### Step 3: Preprocess
+- **PHAROS Multi-Source** (original paper): 4 hospital sources, 1,222 scans / 9,776 images,
+  scan-level CSV splits, source labels for multi-task training.
+- **MIDRC-RICORD** (TCIA): DICOM series converted to PNG via
+  `scripts/convert_dicom_to_png.py`, splits via `scripts/create_csv_splits.py`
+  (`data/dicom/`, `data/png/` ignored by git).
 
-```bash
-python preprocess.py --raw_dir data/png --output_dir data/preprocessed --csv_dir data/splits
-```
-
-**What it does:**
-- Reads CSV files for train/val splits
-- Applies SSFL lung extraction
-- Applies KDS sampling (8 slices per scan)
-- Resizes to 256×256
-
-**Expected output:** 134 train + 34 val preprocessed scans
-
-## CSV Format
-
-Each CSV file has columns:
-
-| Column | Type | Description |
-|--------|------|-------------|
-| `ct_scan_name` | string | Scan folder name (e.g., `MIDRC-RICORD-1A-419639-000082`) |
-| `data_centre` | int | Source identifier (always `0` for single-source RICORD) |
-
-**Example:**
-```csv
-ct_scan_name,data_centre
-MIDRC-RICORD-1A-419639-000082,0
-MIDRC-RICORD-1A-419639-000361,0
-```
-
-## DICOM Series Selection
-
-The `convert_dicom_to_png.py` script uses priority-based series selection:
-
-### Preferred Series (in priority order)
-
-1. ROUTINE CHEST NON-CON
-2. NON CON CHEST
-3. CHEST WITHOUT CONTRAST
-4. ROUTINE CHEST WITH CONTRAST
-5. ARTERIAL AXIAL THIN
-6. ARTERIAL AXIAL THICK
-7. ARTERIALVENOUS AXIAL THIN
-8. VENOUS AXIAL THICK
-9. THORAX PE ART AXIAL 3X3
-10. THORAX ARTERIAL AXIAL 3X3
-
-### Excluded Series
-
-- SCOUT CHEST, PE SCOUT, Scout
-- COR 3X3, 3X3 CORONAL, chest coronal
-- SAG 3X3, SAG 5X5, chest sagittal
-- 0.625mm bone alg, CHEST .625 BONE ALGORITH
-- PE Smart Prep Left Atrium, Smart Prep Series
-- PE MIP COR 15X5
-
-## Notes
-
-- Only scans with ≥5 slices are included in training
-- KDS selects 8 representative slices per scan at 256×256 resolution
-- All images are converted with lung windowing (W=1500, L=-600)
-- Single-source mode (γ=0.0) means all scans are assigned to source 0
+The current notebook (`MultiSource_COVID_CT.ipynb`) does **not** depend on those scripts.
